@@ -1,5 +1,7 @@
 package main;
 
+import java.util.ArrayList;
+
 
 public class Main {
 	public static void main(String argv[])
@@ -28,6 +30,9 @@ public class Main {
 		//som.checkInSO("scormobj.zip1","c:\\scormcourse.zip");
 		
         //session.commit();
+		ArrayList<String> list = new ArrayList<String>();
+		list = som.getComponentsList("c:\\imsmanifest.xml", "asset");
+		System.out.println(list.size());
 		ret = som.dbCommit();
 		if(ret)
 		{

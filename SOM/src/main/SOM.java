@@ -35,6 +35,7 @@ public class SOM {
 	XhiveDatabaseIf dbhandle;
 	XhiveLibraryIf rootLibrary;
 	String libraryName = "scorm-objects";
+	String manifestlibrary = "manifests";
 	public boolean dbConnectionInit(String adminname,String pass,String dbname)
 	{
 		driver = XhiveDriverFactory.getDriver();
@@ -217,19 +218,20 @@ public class SOM {
 		return false;
 	}
 	
-	public ArrayList<String> getComponentsList(String objectname,String comptype)
+	public ArrayList<String> getComponentsList(String fileneme,String comptype)
 	{
 		ArrayList<String> ret = new ArrayList<String>();
 		try {
-			File file = new File("c:\\imsmanifest.xml");
+			
+			File file = new File(fileneme);
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			DocumentBuilder db = dbf.newDocumentBuilder();
 			Document doc = db.parse(file);
 			doc.getDocumentElement().normalize();
-			System.out.println("Root element " + doc.getDocumentElement().getNodeName());
+			//System.out.println("Root element " + doc.getDocumentElement().getNodeName());
 			NodeList nodeLst = doc.getElementsByTagName("resource");
-			System.out.println("Information of all employees - "+  nodeLst.getLength());
-
+			//System.out.println("Information of all employees - "+  nodeLst.getLength());
+			
 			for (int s = 0; s < nodeLst.getLength(); s++) {
 
 				Node fstNode = nodeLst.item(s);
@@ -237,8 +239,8 @@ public class SOM {
 				if (fstNode.getNodeType() == Node.ELEMENT_NODE) {
 
 					Element fstElmnt = (Element) fstNode;
-					if(fstElmnt.getAttribute("adlcp:scormtype").equals("asset"))
-						System.out.println(fstElmnt.getAttribute("href"));
+					if(fstElmnt.getAttribute("adlcp:scormtype").equals(comptype))
+						ret.add(fstElmnt.getAttribute("href"));
 				}
 
 			}
