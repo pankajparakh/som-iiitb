@@ -9,21 +9,21 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.w3c.dom.ls.LSParser;
 
 import com.xhive.XhiveDriverFactory;
 import com.xhive.core.interfaces.XhiveDatabaseIf;
 import com.xhive.core.interfaces.XhiveSessionIf;
 import com.xhive.core.interfaces.XhiveDriverIf;
 import com.xhive.dom.interfaces.XhiveBlobNodeIf;
+import com.xhive.dom.interfaces.XhiveDocumentIf;
 import com.xhive.dom.interfaces.XhiveLibraryIf;
 import com.xhive.versioning.interfaces.XhiveVersionIf;
+
+
+import com.xhive.query.interfaces.XhiveXQueryValueIf;
+import com.xhive.util.interfaces.IterableIterator;
 
 /**
  * @author Pankaj
@@ -102,6 +102,39 @@ public class SOM {
 		return false;
 	}
 
+	public boolean saveXMLDoc(String objectname,String path)
+	{
+		//TODO:
+		try
+		{
+			XhiveLibraryIf manlibrary = (XhiveLibraryIf)rootLibrary.get(manifestlibrary);
+			//create a DOMBuilder
+			LSParser builder = manlibrary.createLSParser();
+			// parse a new document
+			Document doc = builder.parseURI(new File(path).toURI().toString());
+			String docname = objectname + "_imsmanifest.xml";
+			if (!(manlibrary.nameExists(docname))) 
+			{
+				// add the new document to the library
+				manlibrary.appendChild(doc);
+				((XhiveDocumentIf)doc).setName(docname);
+			}
+			else
+			{
+				System.out.println("Document Already Present");
+				return false;
+			}
+			return true;
+
+		}catch(Exception ex)
+		{
+			System.out.println("SOM.saveXMLDoc:Error - "+ex.getMessage());
+		}
+
+		return false;
+
+	}
+
 	public boolean retriveSO(String name,String path)
 	{
 		try
@@ -156,7 +189,7 @@ public class SOM {
 					out.write(buffer, 0, length);
 				}
 				System.out.println("SOM.checkOutHeadSO:Version info" + version.getId());
-				
+
 			}
 			else
 			{
@@ -217,35 +250,67 @@ public class SOM {
 
 		return false;
 	}
-	
-	public ArrayList<String> getComponentsList(String fileneme,String comptype)
+
+	public ArrayList<String> getComponentsList(String filename,String comptype)
 	{
 		ArrayList<String> ret = new ArrayList<String>();
-		try {
+		//		try {
+		//			
+		//			File file = new File(fileneme);
+		//			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		//			DocumentBuilder db = dbf.newDocumentBuilder();
+		//			Document doc = db.parse(file);
+		//			doc.getDocumentElement().normalize();
+		//			//System.out.println("Root element " + doc.getDocumentElement().getNodeName());
+		//			NodeList nodeLst = doc.getElementsByTagName("resource");
+		//			//System.out.println("Information of all employees - "+  nodeLst.getLength());
+		//			
+		//			for (int s = 0; s < nodeLst.getLength(); s++) {
+		//
+		//				Node fstNode = nodeLst.item(s);
+		//
+		//				if (fstNode.getNodeType() == Node.ELEMENT_NODE) {
+		//
+		//					Element fstElmnt = (Element) fstNode;
+		//					if(fstElmnt.getAttribute("adlcp:scormtype").equals(comptype))
+		//						ret.add(fstElmnt.getAttribute("href"));
+		//				}
+		//
+		//			}
+		//		} catch (Exception e) {
+		//			e.printStackTrace();
+		//		}
+		//		return ret;
+		try
+		{
+			String docname = filename+"_imsmanifest.xml";
+			XhiveLibraryIf manlibrary = (XhiveLibraryIf)rootLibrary.get(manifestlibrary);
 			
-			File file = new File(fileneme);
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-			DocumentBuilder db = dbf.newDocumentBuilder();
-			Document doc = db.parse(file);
-			doc.getDocumentElement().normalize();
-			//System.out.println("Root element " + doc.getDocumentElement().getNodeName());
-			NodeList nodeLst = doc.getElementsByTagName("resource");
-			//System.out.println("Information of all employees - "+  nodeLst.getLength());
-			
-			for (int s = 0; s < nodeLst.getLength(); s++) {
+			// Create a query (find all the short chapter titles)
+			String theQuery = "for $i in doc('/manifests/" + docname + "')//resource \n"
+				//+"if $i/@scotype='"+ comptype + "' \n"
+				//+ "return data($i/@href)";
+				+"return $i/node()";
 
-				Node fstNode = nodeLst.item(s);
+			// Execute the query (place the results in the new document)
+			System.out.println("#running query:\n" + theQuery);
+			IterableIterator<? extends XhiveXQueryValueIf> result = manlibrary.executeXQuery(theQuery);
 
-				if (fstNode.getNodeType() == Node.ELEMENT_NODE) {
+			//int count = 0;
+			// Process the results
+			while (result.hasNext()) {
+				// Get the next value from the result sequence
+				XhiveXQueryValueIf value = result.next();
 
-					Element fstElmnt = (Element) fstNode;
-					if(fstElmnt.getAttribute("adlcp:scormtype").equals(comptype))
-						ret.add(fstElmnt.getAttribute("href"));
-				}
-
+				// Print this value
+				ret.add(value.toString());
+				System.out.println(value.toString());
+				//count++;
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
+			//return count;
+		}catch(Exception ex)
+		{
+			System.out.println("SOM:getComponentList - "+ex.getMessage());
 		}
 		return ret;
 	}

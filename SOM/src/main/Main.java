@@ -31,8 +31,11 @@ public class Main {
 		
         //session.commit();
 		ArrayList<String> list = new ArrayList<String>();
-		list = som.getComponentsList("c:\\imsmanifest.xml", "asset");
+		list = som.getComponentsList("scormobj", "asset");
 		System.out.println(list.size());
+		
+		som.saveXMLDoc("scormobj","c:\\scormcourse\\imsmanifest.xml");
+		
 		ret = som.dbCommit();
 		if(ret)
 		{
