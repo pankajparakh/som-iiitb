@@ -18,8 +18,9 @@ public class Main {
 			System.out.println("Main:Connected Successfully");
 		}
 		//som.test();
-		som.saveSO("scormobj","c:\\scormcourse");
-		//som.retriveSO("scormobj.zip","c:\\scormcourse_1.zip");
+		som.saveSO("scormobj1","c:/scormcourse");
+		//som.retriveXMLDoc("scormobj", "d:\\");
+		som.retriveSO("scormobj","c:\\scormcourse_5511223");
 		
 		//som.checkInSO("scormobj1.zip","c:\\scormcourse.zip");
 		
@@ -31,7 +32,7 @@ public class Main {
 		
         //session.commit();
 		ArrayList<String> list = new ArrayList<String>();
-		//list = som.getComponentsList("scormobj", "asset");
+		list = som.getComponentsList("scormobj", "metadata");
 		System.out.println(list.size());
 		
 		//som.saveXMLDoc("scormobj","c:\\scormcourse\\imsmanifest.xml");
