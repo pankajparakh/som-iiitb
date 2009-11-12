@@ -115,38 +115,26 @@ public class SOM {
 		ArrayList<String> assetlist;// = getComponentsList(name, "asset");
 		try
 		{
-//			if (!saveXMLDoc(name, rootpath))
-//			{
-//				System.out.println("SOM.saveSO:Error");
-//				return false;
-//			}
+			if (!saveXMLDoc(name, rootpath))
+			{
+				System.out.println("SOM.saveSO:Error");
+				return false;
+			}
 			assetlist = getComponentsList(name, "asset");
 			for(int i=0;i<assetlist.size();i++)
 			{
 				//TODO:Generate unique name
 				UUID uid = UUID.randomUUID();
 				//TODO:Add to asset-meta.xml
-//				String insqry = "xhive:insert-doc('/so-metadata/asset-meta.xml', \n"
-//					+"document { \n"
-//					+"<asset> \n"
-//					+"<object>"+ name +"</object>\n"
-//					+"<realname>"+ assetlist.get(i) +"</realname>\n"
-//					+"<uname>"+ name + "_" + uid.toString() +"</uname>\n"
-//					+"</asset> \n"
-//					+"} \n"
-//					+")";
 				String insqry = "<asset> \n"
 					+"<object>"+ name +"</object>\n"
 					+"<realname>"+ assetlist.get(i) +"</realname>\n"
 					+"<uname>"+ name + "_" + uid.toString() +"</uname>\n"
 					+"</asset>\n";
-//				System.out.println("Query - "+insqry);
 				XhiveLibraryIf soLibrary = (XhiveLibraryIf)rootLibrary.get(metalibrary);
-//				IterableIterator<? extends XhiveXQueryValueIf> result = soLibrary.executeXQuery(insqry);
-//				soLibrary.ex
-				Document doc = (Document)soLibrary.get("asset-metadata.xml");
-				System.out.println(doc.toString());
-				IterableIterator result = soLibrary.executeXQuery("<hell></hell>", (XhiveDocumentIf)doc);
+				Document doc = (Document)soLibrary.get("asset-meta.xml");
+//				System.out.println(doc.toString());
+				IterableIterator result = soLibrary.executeXQuery(insqry, (XhiveDocumentIf)doc);
 				// We know this query will only return a single node.
 				XhiveXQueryValueIf value = (XhiveXQueryValueIf)result.next();
 				XhiveNodeIf node = value.asNode();
@@ -155,6 +143,21 @@ public class SOM {
 
 
 				//TODO:Add to scormobj-meta.xml
+				insqry = "<asset> \n"
+					+"<uname>"+ name + "_" + uid.toString() +"</uname>\n"
+					+"<realobject>"+ name +"</realobject>\n"
+					+"<realname>"+ assetlist.get(i) +"</realname>\n"
+					+"</asset>\n";
+				soLibrary = (XhiveLibraryIf)rootLibrary.get(metalibrary);
+				doc = (Document)soLibrary.get("scormobj-meta.xml");
+//				System.out.println(doc.toString());
+				result = soLibrary.executeXQuery(insqry, (XhiveDocumentIf)doc);
+				// We know this query will only return a single node.
+				value = (XhiveXQueryValueIf)result.next();
+				node = value.asNode();
+				// Append it to the document element of destination document
+				doc.getDocumentElement().appendChild(node);
+				
 				
 				if(!saveBlob(name + "_" + uid.toString(), rootpath + "\\" +assetlist.get(i)))
 				{
