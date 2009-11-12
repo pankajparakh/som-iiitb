@@ -8,6 +8,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.UUID;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.ls.LSParser;
@@ -19,6 +21,7 @@ import com.xhive.core.interfaces.XhiveDriverIf;
 import com.xhive.dom.interfaces.XhiveBlobNodeIf;
 import com.xhive.dom.interfaces.XhiveDocumentIf;
 import com.xhive.dom.interfaces.XhiveLibraryIf;
+import com.xhive.dom.interfaces.XhiveNodeIf;
 import com.xhive.versioning.interfaces.XhiveVersionIf;
 
 
@@ -35,7 +38,9 @@ public class SOM {
 	XhiveDatabaseIf dbhandle;
 	XhiveLibraryIf rootLibrary;
 	String libraryName = "scorm-objects";
+	String assetlibrary = "assets";
 	String manifestlibrary = "manifests";
+	String metalibrary = "som-metadata";
 	public boolean dbConnectionInit(String adminname,String pass,String dbname)
 	{
 		driver = XhiveDriverFactory.getDriver();
@@ -81,12 +86,104 @@ public class SOM {
 		return false;
 	}
 
+//	public boolean saveSO(String name,String path)
+//	{
+//		//TODO:
+//		try
+//		{
+//			XhiveLibraryIf soLibrary = (XhiveLibraryIf)rootLibrary.get(libraryName);
+//			XhiveBlobNodeIf so =  soLibrary.createBlob();
+//			so.setName(name);
+//			so.setContents(new FileInputStream(path));
+//			soLibrary.appendChild(so);
+//			//System.out.println(soLibrary.getName());
+//			return true;
+//
+//		}catch(Exception ex)
+//		{
+//			System.out.println("SOM.saveSO:Error - "+ex.getMessage());
+//		}
+//
+//		return false;
+//	}
+	
 	public boolean saveSO(String name,String path)
+	{
+		String rootpath = "";
+		//TODO: extract the zip file and set its root folder path in rootpath variable
+		rootpath = path;
+		ArrayList<String> assetlist;// = getComponentsList(name, "asset");
+		try
+		{
+//			if (!saveXMLDoc(name, rootpath))
+//			{
+//				System.out.println("SOM.saveSO:Error");
+//				return false;
+//			}
+			assetlist = getComponentsList(name, "asset");
+			for(int i=0;i<assetlist.size();i++)
+			{
+				//TODO:Generate unique name
+				UUID uid = UUID.randomUUID();
+				//TODO:Add to asset-meta.xml
+//				String insqry = "xhive:insert-doc('/so-metadata/asset-meta.xml', \n"
+//					+"document { \n"
+//					+"<asset> \n"
+//					+"<object>"+ name +"</object>\n"
+//					+"<realname>"+ assetlist.get(i) +"</realname>\n"
+//					+"<uname>"+ name + "_" + uid.toString() +"</uname>\n"
+//					+"</asset> \n"
+//					+"} \n"
+//					+")";
+				String insqry = "<asset> \n"
+					+"<object>"+ name +"</object>\n"
+					+"<realname>"+ assetlist.get(i) +"</realname>\n"
+					+"<uname>"+ name + "_" + uid.toString() +"</uname>\n"
+					+"</asset>\n";
+//				System.out.println("Query - "+insqry);
+				XhiveLibraryIf soLibrary = (XhiveLibraryIf)rootLibrary.get(metalibrary);
+//				IterableIterator<? extends XhiveXQueryValueIf> result = soLibrary.executeXQuery(insqry);
+//				soLibrary.ex
+				Document doc = (Document)soLibrary.get("asset-metadata.xml");
+				System.out.println(doc.toString());
+				IterableIterator result = soLibrary.executeXQuery("<hell></hell>", (XhiveDocumentIf)doc);
+				// We know this query will only return a single node.
+				XhiveXQueryValueIf value = (XhiveXQueryValueIf)result.next();
+				XhiveNodeIf node = value.asNode();
+				// Append it to the document element of destination document
+				doc.getDocumentElement().appendChild(node);
+
+
+				//TODO:Add to scormobj-meta.xml
+				
+				if(!saveBlob(name + "_" + uid.toString(), rootpath + "\\" +assetlist.get(i)))
+				{
+					System.out.println("SOM.saveSO:Error 1");
+					return false;
+				}
+			}
+//			XhiveLibraryIf soLibrary = (XhiveLibraryIf)rootLibrary.get(assetlibrary);
+//			XhiveBlobNodeIf so =  soLibrary.createBlob();
+//			so.setName(name);
+//			so.setContents(new FileInputStream(path));
+//			soLibrary.appendChild(so);
+//			//System.out.println(soLibrary.getName());
+			return true;
+
+		}catch(Exception ex)
+		{
+			System.out.println("SOM.saveSO:Error - "+ex.getMessage() + "\n" + ex.getStackTrace().toString());
+		}
+
+		return false;
+	}
+	
+	public boolean saveBlob(String name,String path)
 	{
 		//TODO:
 		try
 		{
-			XhiveLibraryIf soLibrary = (XhiveLibraryIf)rootLibrary.get(libraryName);
+			XhiveLibraryIf soLibrary = (XhiveLibraryIf)rootLibrary.get(assetlibrary);
 			XhiveBlobNodeIf so =  soLibrary.createBlob();
 			so.setName(name);
 			so.setContents(new FileInputStream(path));
@@ -111,7 +208,7 @@ public class SOM {
 			//create a DOMBuilder
 			LSParser builder = manlibrary.createLSParser();
 			// parse a new document
-			Document doc = builder.parseURI(new File(path).toURI().toString());
+			Document doc = builder.parseURI(new File(path + "\\imsmanifest.xml").toURI().toString());
 			String docname = objectname + "_imsmanifest.xml";
 			if (!(manlibrary.nameExists(docname))) 
 			{
@@ -250,52 +347,28 @@ public class SOM {
 
 		return false;
 	}
+	
+	
 
-	public ArrayList<String> getComponentsList(String filename,String comptype)
+	public ArrayList<String> getComponentsList(String objectname,String comptype)
 	{
 		ArrayList<String> ret = new ArrayList<String>();
-		//		try {
-		//			
-		//			File file = new File(fileneme);
-		//			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		//			DocumentBuilder db = dbf.newDocumentBuilder();
-		//			Document doc = db.parse(file);
-		//			doc.getDocumentElement().normalize();
-		//			//System.out.println("Root element " + doc.getDocumentElement().getNodeName());
-		//			NodeList nodeLst = doc.getElementsByTagName("resource");
-		//			//System.out.println("Information of all employees - "+  nodeLst.getLength());
-		//			
-		//			for (int s = 0; s < nodeLst.getLength(); s++) {
-		//
-		//				Node fstNode = nodeLst.item(s);
-		//
-		//				if (fstNode.getNodeType() == Node.ELEMENT_NODE) {
-		//
-		//					Element fstElmnt = (Element) fstNode;
-		//					if(fstElmnt.getAttribute("adlcp:scormtype").equals(comptype))
-		//						ret.add(fstElmnt.getAttribute("href"));
-		//				}
-		//
-		//			}
-		//		} catch (Exception e) {
-		//			e.printStackTrace();
-		//		}
-		//		return ret;
+	
 		try
 		{
-			String docname = filename+"_imsmanifest.xml";
+			String docname = objectname+"_imsmanifest.xml";
 			XhiveLibraryIf manlibrary = (XhiveLibraryIf)rootLibrary.get(manifestlibrary);
 			
 			// Create a query (find all the short chapter titles)
-			String theQuery = "for $i in doc('/manifests/" + docname + "')//resource \n"
-				//+"if $i/@scotype='"+ comptype + "' \n"
-				//+ "return data($i/@href)";
-				+"return $i/node()";
+			String theQuery = "declare namespace ims = 'http://www.imsproject.org/xsd/imscp_rootv1p1p2';\n" 
+							+"declare namespace adlcp='http://www.adlnet.org/xsd/adlcp_rootv1p2';\n" 
+							+"for $i in doc('/manifests/" + docname +"')//ims:resource[@adlcp:scormtype='asset'] \n"
+							+"return data($i/@href)";
 
 			// Execute the query (place the results in the new document)
-			System.out.println("#running query:\n" + theQuery);
+			//System.out.println("#running query:\n" + theQuery);
 			IterableIterator<? extends XhiveXQueryValueIf> result = manlibrary.executeXQuery(theQuery);
-
+			
 			//int count = 0;
 			// Process the results
 			while (result.hasNext()) {
@@ -304,7 +377,7 @@ public class SOM {
 
 				// Print this value
 				ret.add(value.toString());
-				System.out.println(value.toString());
+				//System.out.println(value.toString());
 				//count++;
 			}
 			//return count;
