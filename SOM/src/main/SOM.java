@@ -33,6 +33,7 @@ import com.xhive.util.interfaces.IterableIterator;
  * @author Pankaj
  *
  */
+
 public class SOM {
 	XhiveDriverIf driver;
 	XhiveSessionIf session;
@@ -43,6 +44,14 @@ public class SOM {
 	String manifestlibrary = "manifests";
 	String metalibrary = "som-metadata";
 	String otherslibrary = "others";
+	String catloglibrary = "Catlog";
+	
+	/**
+	 * @param adminname
+	 * @param pass
+	 * @param dbname
+	 * @return
+	 */
 	public boolean dbConnectionInit(String adminname,String pass,String dbname)
 	{
 		driver = XhiveDriverFactory.getDriver();
@@ -88,7 +97,7 @@ public class SOM {
 		return false;
 	}
 
-	
+
 	public boolean saveSO(String name,String path)
 	{
 		String rootpath = "";
@@ -109,18 +118,20 @@ public class SOM {
 				//TODO:Generate unique name
 				UUID uid = UUID.randomUUID();
 				//TODO:Add to asset-meta.xml
-				int temp = assetlist.get(i).lastIndexOf('/');
+				int temp = 0;
+				if(assetlist.get(i).contains("/"))
+					temp = assetlist.get(i).lastIndexOf('/');
 				String location = (assetlist.get(i)).substring(0, temp);
-				String realname = (assetlist.get(i)).substring(temp+1);
+				String realname = (assetlist.get(i)).substring((temp==0)?0:temp+1);
 				String insqry = "<asset xmlns='http://www.iiitb.ac.in/docengg'> \n"
 					+"<object>"+ name +"</object>\n"
 					+"<location>"+ location +"</location>\n"
 					+"<realname>"+ realname +"</realname>\n"
-					+"<uname>"+ name + "_" + uid.toString() +"</uname>\n"
+					+"<uname>"+ name + "_" + uid.toString()+"</uname>\n"
 					+"</asset>\n";
 				XhiveLibraryIf soLibrary = (XhiveLibraryIf)rootLibrary.get(metalibrary);
 				Document doc = (Document)soLibrary.get("asset-meta.xml");
-//				System.out.println(doc.toString());
+				//				System.out.println(doc.toString());
 				IterableIterator result = soLibrary.executeXQuery(insqry, (XhiveDocumentIf)doc);
 				// We know this query will only return a single node.
 				XhiveXQueryValueIf value = (XhiveXQueryValueIf)result.next();
@@ -139,39 +150,41 @@ public class SOM {
 					+"</asset>\n";
 				soLibrary = (XhiveLibraryIf)rootLibrary.get(metalibrary);
 				doc = (Document)soLibrary.get("scormobj-meta.xml");
-//				System.out.println(doc.toString());
+				//				System.out.println(doc.toString());
 				result = soLibrary.executeXQuery(insqry, (XhiveDocumentIf)doc);
 				// We know this query will only return a single node.
 				value = (XhiveXQueryValueIf)result.next();
 				node = value.asNode();
 				// Append it to the document element of destination document
 				doc.getDocumentElement().appendChild(node);
-				
-				
+
+
 				if(!saveBlob(name + "_" + uid.toString(), rootpath + "/" +assetlist.get(i)))
 				{
 					System.out.println("SOM.saveSO:Error 1");
 					return false;
 				}
-				
+
 			}
 			ArrayList<String> metalist = getComponentsList(name, "metadata");
 			for(int i=0;i<metalist.size();i++)
 			{
 				UUID uid = UUID.randomUUID();
-				//TODO:Add to asset-meta.xml
-				int temp = assetlist.get(i).lastIndexOf('/');
+				//TODO:Add to metadata-meta.xml
+				int temp = 0;
+				if(metalist.get(i).contains("/"))
+					metalist.get(i).lastIndexOf('/');
 				String location = (metalist.get(i)).substring(0, temp);
-				String realname = (metalist.get(i)).substring(temp+1);
-				String insqry = "<asset xmlns='http://www.iiitb.ac.in/docengg'> \n"
+				String realname = (metalist.get(i)).substring((temp==0)?0:temp+1);
+				String insqry = "<meta xmlns='http://www.iiitb.ac.in/docengg'> \n"
 					+"<object>"+ name +"</object>\n"
 					+"<location>"+ location +"</location>\n"
 					+"<realname>"+ realname +"</realname>\n"
-					+"<uname>"+ name + "_" + uid.toString() +"</uname>\n"
-					+"</asset>\n";
+					+"<uname>"+ name + "_" + uid.toString() +"_" +realname +"</uname>\n"
+					+"</meta>\n";
 				XhiveLibraryIf soLibrary = (XhiveLibraryIf)rootLibrary.get(metalibrary);
 				Document doc = (Document)soLibrary.get("metadata-meta.xml");
-//				System.out.println(doc.toString());
+				//				System.out.println(doc.toString());
 				IterableIterator result = soLibrary.executeXQuery(insqry, (XhiveDocumentIf)doc);
 				// We know this query will only return a single node.
 				XhiveXQueryValueIf value = (XhiveXQueryValueIf)result.next();
@@ -195,7 +208,7 @@ public class SOM {
 
 		return false;
 	}
-	
+
 	public boolean saveBlob(String name,String path)
 	{
 		//TODO:
@@ -211,7 +224,7 @@ public class SOM {
 
 		}catch(Exception ex)
 		{
-			System.out.println("SOM.saveSO:Error - "+ex.getMessage());
+			System.out.println("SOM.saveBlob:Error - "+ex.getMessage());
 		}
 
 		return false;
@@ -249,7 +262,7 @@ public class SOM {
 		return false;
 
 	}
-	
+
 	public boolean retriveXMLDoc(String objectname,String fullpath,XhiveLibraryIf manlibrary)
 	{
 		//TODO:
@@ -261,7 +274,7 @@ public class SOM {
 			String docname = objectname;
 			if (!(manlibrary.nameExists(docname))) 
 			{
-				System.out.println("SOM.retriveXMLDoc: Error - Document Not Present Present");
+				System.out.println("SOM.retriveXMLDoc: Error - "+ docname +": Document Not Present");
 				return false;
 			}
 			else
@@ -272,18 +285,17 @@ public class SOM {
 				FileOutputStream out;// = new FileOutputStream(path);
 				try{
 					out = new FileOutputStream(fullpath);
-					}catch(FileNotFoundException fex)
-					{
-						new File(fullpath.substring(0, fullpath.lastIndexOf('/'))).mkdirs();
-						
-					}
-					finally
-					{
-						out = new FileOutputStream(fullpath);
-					}
+				}catch(FileNotFoundException fex)
+				{
+					new File(fullpath.substring(0, fullpath.lastIndexOf('/'))).mkdirs();
+				}
+				finally
+				{
+					out = new FileOutputStream(fullpath);
+				}
 				int sosize = (int)content.length();
 				out.write(content.getBytes(), 0, sosize);
-				
+
 			}
 			return true;
 
@@ -296,34 +308,34 @@ public class SOM {
 
 	}
 
-//	public boolean retriveSO(String name,String path)
-//	{
-//		try
-//		{
-//			XhiveLibraryIf soLibrary = (XhiveLibraryIf)rootLibrary.get(libraryName);
-//			XhiveBlobNodeIf so =  (XhiveBlobNodeIf)soLibrary.get(name);
-//			//			so.setName(name);
-//			//			so.setContents(new FileInputStream(path));
-//			//			soLibrary.appendChild(so);
-//			InputStream in = so.getContents();
-//			FileOutputStream out = new FileOutputStream(path);
-//			int sosize = (int)so.getSize();
-//			byte[] buffer = new byte[sosize];
-//			int length;
-//			while((length = in.read(buffer)) != -1) {
-//				out.write(buffer, 0, length);
-//			}
-//
-//			//System.out.println(so.getName());
-//			return true;
-//
-//		}catch(Exception ex)
-//		{
-//			System.out.println("SOM.retriveSO:Error - "+ex.getMessage());
-//		}
-//
-//		return false;
-//	}
+	//	public boolean retriveSO(String name,String path)
+	//	{
+	//		try
+	//		{
+	//			XhiveLibraryIf soLibrary = (XhiveLibraryIf)rootLibrary.get(libraryName);
+	//			XhiveBlobNodeIf so =  (XhiveBlobNodeIf)soLibrary.get(name);
+	//			//			so.setName(name);
+	//			//			so.setContents(new FileInputStream(path));
+	//			//			soLibrary.appendChild(so);
+	//			InputStream in = so.getContents();
+	//			FileOutputStream out = new FileOutputStream(path);
+	//			int sosize = (int)so.getSize();
+	//			byte[] buffer = new byte[sosize];
+	//			int length;
+	//			while((length = in.read(buffer)) != -1) {
+	//				out.write(buffer, 0, length);
+	//			}
+	//
+	//			//System.out.println(so.getName());
+	//			return true;
+	//
+	//		}catch(Exception ex)
+	//		{
+	//			System.out.println("SOM.retriveSO:Error - "+ex.getMessage());
+	//		}
+	//
+	//		return false;
+	//	}
 	public boolean retriveBlob(String name,String fullpath)
 	{
 		try
@@ -336,11 +348,11 @@ public class SOM {
 			InputStream in = so.getContents();
 			FileOutputStream out;
 			try{
-			out = new FileOutputStream(fullpath);
+				out = new FileOutputStream(fullpath);
 			}catch(FileNotFoundException fex)
 			{
 				new File(fullpath.substring(0, fullpath.lastIndexOf('/'))).mkdirs();
-				
+
 			}
 			finally
 			{
@@ -358,7 +370,7 @@ public class SOM {
 
 		}catch(Exception ex)
 		{
-			System.out.println("SOM.retriveSO:Error - "+ex.getMessage());
+			System.out.println("SOM.retriveBlob:Error - "+ex.getMessage());
 		}
 
 		return false;
@@ -372,17 +384,19 @@ public class SOM {
 			ArrayList<String> assetlist = getComponentsList(name, "asset");
 			for(int i=0;i<assetlist.size();i++)
 			{
-				int temp = assetlist.get(i).lastIndexOf('/');
+				int temp=0;
+				if(assetlist.get(i).contains("/"))
+					temp = assetlist.get(i).lastIndexOf('/');
 				String location = (assetlist.get(i)).substring(0, temp);
-				String realname = (assetlist.get(i)).substring(temp+1);
-				
+				String realname = (assetlist.get(i)).substring((temp==0)?0:temp+1);
+
 				String theQuery = "declare namespace loc = 'http://www.iiitb.ac.in/docengg';\n" 
 					+"for $i in doc('/som-metadata/asset-meta.xml')//loc:asset \n"
 					+"where $i/loc:object='" + name + "' and $i/loc:location='"+ location +"' and $i/loc:realname='"+ realname +"' \n"
 					+"return data($i/loc:uname)";
 				//System.out.println(theQuery);
 				IterableIterator<? extends XhiveXQueryValueIf> result = mlibrary.executeXQuery(theQuery);
-				
+
 				//int count = 0;
 				// Process the results
 				while (result.hasNext()) {
@@ -391,7 +405,7 @@ public class SOM {
 					//System.out.println(value.toString());
 					if(!retriveBlob(value.toString(), rootpath + "/"+location+"/"+realname))
 					{
-						System.out.println("SOM.retriveSO:Error");
+						System.out.println("SOM.retriveSO:Error-1");
 						return false;
 					}
 				}
@@ -399,21 +413,23 @@ public class SOM {
 			mlibrary = (XhiveLibraryIf)rootLibrary.get(manifestlibrary);
 			if(!retriveXMLDoc(name+"_imsmanifest.xml", rootpath+"/imsmanifest.xml", mlibrary))
 			{
-				System.out.println("SOM.retriveSO:Error");
+				System.out.println("SOM.retriveSO:Error-2");
 				return false;
 			}
 			ArrayList<String> metalist = getComponentsList(name, "metadata");
 			for(int i=0;i<metalist.size();i++)
 			{
-				int temp = metalist.get(i).lastIndexOf('/');
+				int temp = 0;
+				if(metalist.get(i).contains("/"))
+					metalist.get(i).lastIndexOf('/');
 				String location = (metalist.get(i)).substring(0, temp);
-				String realname = (metalist.get(i)).substring(temp+1);
-				
+				String realname = (metalist.get(i)).substring((temp==0)?0:temp+1);
+
 				String theQuery = "declare namespace loc = 'http://www.iiitb.ac.in/docengg';\n" 
-					+"for $i in doc('/som-metadata/metadata-meta.xml')//loc:asset \n"
+					+"for $i in doc('/som-metadata/metadata-meta.xml')//loc:meta \n"
 					+"where $i/loc:object='" + name + "' and $i/loc:location='"+ location +"' and $i/loc:realname='"+ realname +"' \n"
 					+"return data($i/loc:uname)";
-				System.out.println(theQuery);
+				//System.out.println(theQuery);
 				IterableIterator<? extends XhiveXQueryValueIf> result = mlibrary.executeXQuery(theQuery);
 				mlibrary = (XhiveLibraryIf)rootLibrary.get(otherslibrary);
 				//int count = 0;
@@ -424,10 +440,16 @@ public class SOM {
 					//System.out.println(value.toString());
 					if(!retriveXMLDoc(value.toString(), rootpath + "/"+location+"/"+realname,mlibrary))
 					{
-						System.out.println("SOM.retriveSO:Error");
+						System.out.println("SOM.retriveSO:Error-3");
 						return false;
 					}
 				}
+			}
+			mlibrary = (XhiveLibraryIf)rootLibrary.get(catloglibrary);
+			if(!retriveXMLDoc("ims_xml.xsd", rootpath, mlibrary))
+			{
+				System.out.println("SOM.retriveSO:Error-3");
+				return false;
 			}
 
 
@@ -525,45 +547,45 @@ public class SOM {
 
 		return false;
 	}
-	
-	
+
+
 
 	public ArrayList<String> getComponentsList(String objectname,String comptype)
 	{
 		ArrayList<String> ret = new ArrayList<String>();
-	
+
 		try
 		{
 			String docname = objectname+"_imsmanifest.xml";
 			XhiveLibraryIf manlibrary = (XhiveLibraryIf)rootLibrary.get(manifestlibrary);
-			
+
 			// Create a query (find all the short chapter titles)
 			String theQuery = "";
 			if(comptype.equals("asset"))
 			{
 				theQuery = "declare namespace ims = 'http://www.imsproject.org/xsd/imscp_rootv1p1p2';\n" 
-							+"declare namespace adlcp='http://www.adlnet.org/xsd/adlcp_rootv1p2';\n" 
-							+"for $i in doc('/manifests/" + docname +"')//ims:file \n"
-							+"return data($i/@href)";
+					+"declare namespace adlcp='http://www.adlnet.org/xsd/adlcp_rootv1p2';\n" 
+					+"for $i in doc('/manifests/" + docname +"')//ims:file \n"
+					+"return data($i/@href)";
 			}
 			else if(comptype.equals("metadata"))
 			{
 				theQuery = "declare namespace ims = 'http://www.imsproject.org/xsd/imscp_rootv1p1p2';\n" 
-							+"declare namespace adlcp='http://www.adlnet.org/xsd/adlcp_rootv1p2';\n" 
-							+"for $i in doc('/manifests/" + docname +"')//adlcp:location \n"
-							+"return data($i)";
+					+"declare namespace adlcp='http://www.adlnet.org/xsd/adlcp_rootv1p2';\n" 
+					+"for $i in doc('/manifests/" + docname +"')//adlcp:location \n"
+					+"return data($i)";
 			}
 			else
 			{
 				System.out.println("SOM.getComponentsList: Error - Invalid type");
 				return ret;
 			}
-			
+
 
 			// Execute the query (place the results in the new document)
 			//System.out.println("#running query:\n" + theQuery);
 			IterableIterator<? extends XhiveXQueryValueIf> result = manlibrary.executeXQuery(theQuery);
-			
+
 			//int count = 0;
 			// Process the results
 			while (result.hasNext()) {

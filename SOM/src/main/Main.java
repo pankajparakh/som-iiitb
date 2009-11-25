@@ -18,9 +18,9 @@ public class Main {
 			System.out.println("Main:Connected Successfully");
 		}
 		//som.test();
-		som.saveSO("scormobj1","c:/scormcourse");
+//		som.saveSO("scormobj11","c:/scormcourse");
 		//som.retriveXMLDoc("scormobj", "d:\\");
-		som.retriveSO("scormobj","c:\\scormcourse_5511223");
+		som.retriveSO("scormobj11","c:\\scormcourse_4511");
 		
 		//som.checkInSO("scormobj1.zip","c:\\scormcourse.zip");
 		
